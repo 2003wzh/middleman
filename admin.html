@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Codex 管理端</title>
+  <style>
+    :root {
+      --bg: #f7f8fb;
+      --panel: #ffffff;
+      --ink: #172026;
+      --muted: #5f6b76;
+      --line: #d9dee7;
+      --accent: #0f766e;
+      --danger: #b91c1c;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+
+    main {
+      width: min(1100px, calc(100% - 32px));
+      margin: 28px auto;
+      display: grid;
+      gap: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 32px;
+      letter-spacing: 0;
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    label {
+      display: grid;
+      gap: 8px;
+      font-weight: 650;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font: inherit;
+    }
+
+    button {
+      width: fit-content;
+      border: 0;
+      border-radius: 6px;
+      padding: 10px 14px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button.danger {
+      background: var(--danger);
+    }
+
+    .row-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow-wrap: anywhere;
+    }
+
+    th,
+    td {
+      padding: 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .error {
+      color: var(--danger);
+      font-weight: 700;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+    }
+
+    .status {
+      font-weight: 700;
+    }
+
+    .status.pending {
+      color: #9a3412;
+    }
+
+    .status.done {
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Codex 管理端</h1>
+    </header>
+
+    <section>
+      <label>
+        管理员 token
+        <input id="token" type="password" placeholder="默认开发 token: change-me-admin-token">
+      </label>
+      <button id="load" type="button">加载订单</button>
+      <div id="status"></div>
+    </section>
+
+    <section>
+      <table>
+        <thead>
+          <tr>
+            <th>订单号</th>
+            <th>查询码</th>
+            <th>服务</th>
+            <th>金额</th>
+            <th>用户</th>
+            <th>支付方式</th>
+            <th>联系方式</th>
+            <th>状态</th>
+            <th>交付内容</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="orders"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    const token = document.querySelector("#token");
+    const load = document.querySelector("#load");
+    const status = document.querySelector("#status");
+    const orders = document.querySelector("#orders");
+
+    function headers() {
+      return {
+        "Content-Type": "application/json",
+        "X-Admin-Token": token.value.trim()
+      };
+    }
+
+    function statusText(status) {
+      if (status === "fulfilled") return "已确认";
+      if (status === "pending_payment") return "待确认付款";
+      return status || "未知";
+    }
+
+    function statusClass(status) {
+      if (status === "fulfilled") return "done";
+      if (status === "pending_payment") return "pending";
+      return "";
+    }
+
+    function render(rows) {
+      orders.innerHTML = "";
+      for (const order of rows) {
+        const tr = document.createElement("tr");
+        const key = order.apiKey ? `<code>${order.apiKey}</code>` : "";
+        const fulfillAction = order.status === "fulfilled"
+          ? "<span>已确认</span>"
+          : `<button data-action="fulfill" data-id="${order.id}" type="button">确认收款并放行</button>`;
+        const action = `
+          <div class="row-actions">
+            ${fulfillAction}
+            <button class="danger" data-action="delete" data-id="${order.id}" type="button">删除</button>
+          </div>
+        `;
+        tr.innerHTML = `
+          <td><code>${order.id}</code></td>
+          <td><code>${order.lookupCode || ""}</code></td>
+          <td>${order.planTitle || order.planId}</td>
+          <td>${order.price}元</td>
+          <td>${order.userEmail || ""}</td>
+          <td>${order.paymentTitle || order.paymentMethod || ""}<br><code>${order.paymentAccount || ""}</code></td>
+          <td>${order.contact}</td>
+          <td><span class="status ${statusClass(order.status)}">${statusText(order.status)}</span></td>
+          <td>${key}</td>
+          <td>${action}</td>
+        `;
+        orders.appendChild(tr);
+      }
+    }
+
+    async function loadOrders() {
+      status.textContent = "";
+      const response = await fetch("/api/admin/orders", { headers: headers() });
+      const data = await response.json();
+      if (!response.ok) {
+        status.innerHTML = `<span class="error">${data.error || "加载失败"}</span>`;
+        return;
+      }
+      render(data.orders);
+    }
+
+    async function fulfill(orderId) {
+      const response = await fetch("/api/admin/fulfill", {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({ orderId })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        status.innerHTML = `<span class="error">${data.error || "发放失败"}</span>`;
+        return;
+      }
+      await loadOrders();
+    }
+
+    async function deleteOrder(orderId) {
+      if (!confirm(`确定删除订单 ${orderId} 吗？这个操作不能撤销。`)) {
+        return;
+      }
+
+      const response = await fetch("/api/admin/delete", {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({ orderId })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        status.innerHTML = `<span class="error">${data.error || "删除失败"}</span>`;
+        return;
+      }
+      await loadOrders();
+    }
+
+    load.addEventListener("click", loadOrders);
+    orders.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-id]");
+      if (!button) return;
+      if (button.dataset.action === "fulfill") fulfill(button.dataset.id);
+      if (button.dataset.action === "delete") deleteOrder(button.dataset.id);
+    });
+  </script>
+</body>
+</html>

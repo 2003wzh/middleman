@@ -1,0 +1,1149 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Middleman 服务工作台</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f3f6f8;
+      --surface: #ffffff;
+      --surface-soft: #f7fafc;
+      --ink: #15202b;
+      --muted: #667085;
+      --line: #d9e2ea;
+      --accent: #0f766e;
+      --accent-dark: #0b5f59;
+      --blue: #1d4ed8;
+      --gold: #b7791f;
+      --danger: #b42318;
+      --ok: #15803d;
+      --shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      max-width: 780px;
+      font-size: clamp(34px, 5vw, 56px);
+      line-height: 1.06;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      font-size: clamp(25px, 4vw, 38px);
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      font-size: 18px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    .shell {
+      width: min(1160px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 22px 0 42px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      flex: 0 0 38px;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--ink);
+      color: #fff;
+      font-weight: 850;
+    }
+
+    .brand-copy {
+      display: grid;
+      line-height: 1.15;
+    }
+
+    .brand-copy strong {
+      font-size: 15px;
+    }
+
+    .brand-copy span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .nav,
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      display: inline-flex;
+      min-height: 42px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-radius: 6px;
+      padding: 10px 14px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 760;
+      text-decoration: none;
+      transition: background 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease;
+    }
+
+    .btn:hover {
+      background: var(--accent-dark);
+      transform: translateY(-1px);
+    }
+
+    .btn.secondary {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .btn.secondary:hover {
+      border-color: #aab8c5;
+      background: #f9fbfd;
+    }
+
+    .btn.blue {
+      background: var(--blue);
+    }
+
+    .btn.blue:hover {
+      background: #1e40af;
+    }
+
+    .btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+      transform: none;
+    }
+
+    .view {
+      display: none;
+      gap: 18px;
+    }
+
+    .view.active {
+      display: grid;
+    }
+
+    body[data-current-view="home"] .shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      padding: 22px 0 34px;
+    }
+
+    body[data-current-view="home"] .topbar {
+      display: flex;
+    }
+
+    .entry-screen {
+      min-height: calc(100vh - 118px);
+      display: grid;
+      align-items: start;
+      justify-items: start;
+      position: relative;
+      overflow: hidden;
+      padding: clamp(18px, 4vw, 42px) 0;
+    }
+
+    .entry-screen::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(rgba(217, 226, 234, 0.42) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(217, 226, 234, 0.42) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: radial-gradient(circle at center, #000 0%, transparent 72%);
+      opacity: 0.42;
+      pointer-events: none;
+    }
+
+    .entry-panel {
+      width: min(390px, 100%);
+      display: grid;
+      gap: 16px;
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 22px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: var(--shadow);
+    }
+
+    .entry-kicker {
+      width: fit-content;
+      border: 1px solid #bdd8d4;
+      border-radius: 999px;
+      padding: 5px 10px;
+      background: #eef8f6;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .entry-title {
+      max-width: 340px;
+      font-size: clamp(24px, 3vw, 30px);
+      line-height: 1.18;
+    }
+
+    .entry-subtitle {
+      max-width: 330px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .entry-points {
+      display: grid;
+      gap: 9px;
+      padding: 0;
+      margin: 0;
+      list-style: none;
+    }
+
+    .entry-points li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .entry-points li::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      flex: 0 0 7px;
+      margin-top: 7px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .entry-note {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 11px 12px;
+      background: var(--surface-soft);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .entry-button {
+      width: 100%;
+      min-height: 48px;
+      border-radius: 8px;
+      font-size: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .home-hero,
+    .panel,
+    .service-card,
+    .next-strip {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .home-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
+      gap: 24px;
+      align-items: stretch;
+      padding: clamp(24px, 4vw, 42px);
+    }
+
+    .hero-copy {
+      display: grid;
+      align-content: center;
+      gap: 18px;
+    }
+
+    .eyebrow {
+      width: fit-content;
+      border: 1px solid #bdd8d4;
+      border-radius: 999px;
+      padding: 5px 10px;
+      background: #eef8f6;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .lead {
+      max-width: 720px;
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    .hero-metrics {
+      display: grid;
+      gap: 10px;
+      align-content: center;
+    }
+
+    .metric {
+      display: grid;
+      gap: 4px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: var(--surface-soft);
+    }
+
+    .metric strong {
+      font-size: 22px;
+    }
+
+    .metric span,
+    .section-head p,
+    .page-title p,
+    .panel-head p,
+    .next-strip p {
+      color: var(--muted);
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-end;
+    }
+
+    .services {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .service-card {
+      min-height: 180px;
+      padding: 18px;
+      display: grid;
+      gap: 12px;
+      align-content: start;
+      box-shadow: none;
+    }
+
+    .service-icon {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border-radius: 8px;
+      background: #edf2f7;
+      color: var(--ink);
+      font-weight: 850;
+    }
+
+    .service-card p {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: auto;
+    }
+
+    .tag {
+      border-radius: 999px;
+      padding: 4px 8px;
+      background: #eef2ff;
+      color: #3730a3;
+      font-size: 12px;
+      font-weight: 780;
+    }
+
+    .page-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .page-title {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .progress {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .progress-step {
+      min-height: 56px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .progress-step strong {
+      display: block;
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    .progress-step.active {
+      border-color: #9ed1ca;
+      background: #eef8f6;
+    }
+
+    .tool-grid {
+      display: grid;
+      grid-template-columns: minmax(310px, 0.9fr) minmax(360px, 1.1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      padding: 20px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    label {
+      display: grid;
+      gap: 8px;
+      color: var(--ink);
+      font-weight: 680;
+    }
+
+    .field-hint {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .field-hint a {
+      color: var(--accent);
+      font-weight: 760;
+      text-decoration: none;
+    }
+
+    .field-hint a:hover {
+      text-decoration: underline;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 11px 12px;
+      background: #fff;
+      color: var(--ink);
+      outline: none;
+      transition: border-color 140ms ease, box-shadow 140ms ease;
+    }
+
+    .secret-field {
+      position: relative;
+    }
+
+    .secret-field input {
+      padding-right: 48px;
+    }
+
+    .icon-button {
+      display: grid;
+      width: 36px;
+      height: 36px;
+      place-items: center;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .icon-button:hover {
+      border-color: var(--line);
+      background: var(--surface-soft);
+      color: var(--ink);
+    }
+
+    .secret-toggle {
+      position: absolute;
+      top: 50%;
+      right: 7px;
+      transform: translateY(-50%);
+    }
+
+    .icon-button svg {
+      width: 19px;
+      height: 19px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #78bdb5;
+      box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.12);
+    }
+
+    textarea {
+      min-height: 280px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 680;
+    }
+
+    .check-row input {
+      width: 18px;
+      height: 18px;
+      padding: 0;
+      margin: 0;
+      flex: 0 0 auto;
+    }
+
+    .notice,
+    .price-strip,
+    .order-strip {
+      border-radius: 8px;
+      padding: 13px;
+      font-size: 14px;
+    }
+
+    .notice {
+      border: 1px solid #fed7aa;
+      border-left: 4px solid var(--gold);
+      background: #fff7ed;
+      color: #7c2d12;
+    }
+
+    .notice a {
+      color: #7c2d12;
+      font-weight: 760;
+      text-decoration: none;
+    }
+
+    .price-strip {
+      display: grid;
+      gap: 8px;
+      border: 1px solid #bfd7ff;
+      background: #eff6ff;
+      color: #1e3a8a;
+    }
+
+    .price-strip strong {
+      color: #172554;
+      font-size: 18px;
+    }
+
+    .order-strip {
+      display: none;
+      gap: 8px;
+      border: 1px solid #bbf7d0;
+      background: #f0fdf4;
+      color: #166534;
+    }
+
+    .order-strip.active {
+      display: grid;
+    }
+
+    .next-strip {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 20px;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+    }
+
+    @media (max-width: 900px) {
+      .home-hero,
+      .tool-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .services,
+      .progress {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .shell {
+        width: min(100% - 20px, 1160px);
+        padding-top: 14px;
+      }
+
+      .topbar,
+      .section-head,
+      .page-head,
+      .next-strip,
+      .panel-head {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .nav,
+      .actions {
+        justify-content: stretch;
+      }
+
+      .btn {
+        width: 100%;
+      }
+
+      .entry-panel {
+        padding: 22px;
+      }
+
+      .entry-button {
+        width: 100%;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body data-current-view="home">
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="index.html" aria-label="返回首页">
+        <span class="brand-mark">M</span>
+        <span class="brand-copy">
+          <strong>Middleman 服务工作台</strong>
+          <span>部署、账号、脚本与环境服务</span>
+        </span>
+      </a>
+      <nav class="nav" aria-label="账号">
+        <span id="userEmail" class="field-hint"></span>
+        <button id="logout" class="btn secondary" type="button">退出登录</button>
+      </nav>
+    </header>
+
+    <section class="view active" data-view="home" aria-label="服务首页">
+      <div class="entry-screen">
+        <div class="entry-panel">
+          <div class="entry-kicker">服务入口</div>
+          <h1 class="entry-title">Codex 自动化部署</h1>
+          <p class="entry-subtitle">把安装、配置和环境检查整理成清晰步骤，减少手动折腾，快速把 Codex 跑起来。</p>
+
+          <ul class="entry-points" aria-label="服务亮点">
+            <li>生成适合当前环境的部署配置</li>
+            <li>降低命令填写和环境配置出错概率</li>
+            <li>按步骤完成准备、安装和验证</li>
+          </ul>
+
+          <div class="entry-note">适合想快速完成 Codex 本机部署的用户。</div>
+
+          <a class="btn entry-button" href="pay.html">Codex 服务入口</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" data-view="deploy" aria-label="Codex 部署配置">
+      <div class="page-head">
+        <div class="page-title">
+          <button class="btn secondary" type="button" data-go="home">返回服务首页</button>
+          <h2>Codex 部署配置</h2>
+          <p>请先在支付页完成订单。付款后从支付页跳转回来，这里会根据订单类型展示配置指令。</p>
+        </div>
+      </div>
+
+      <div class="progress" aria-label="步骤进度">
+        <div class="progress-step"><strong>支付</strong>选择是否已有网络加速环境</div>
+        <div class="progress-step active"><strong>配置</strong>生成部署配置指令</div>
+        <div class="progress-step"><strong>执行</strong>按指令完成本机部署</div>
+      </div>
+
+      <div id="orderStrip" class="order-strip"></div>
+
+      <div class="tool-grid">
+        <section class="panel" aria-label="部署配置">
+          <div class="panel-head">
+            <div>
+              <h3>部署参数</h3>
+              <p>按目标电脑实际环境填写，配置摘要会同步更新。</p>
+            </div>
+          </div>
+
+          <div class="price-strip">
+            <strong id="serviceTitle">请先完成支付</strong>
+            <span id="serviceHint">支付完成后，系统会展示对应的配置指令内容。</span>
+          </div>
+
+          <div id="networkNotice" class="notice" hidden>
+            <strong>网络加速工具指引</strong>
+            <span>你选择的是包含网络加速指引的服务。请先打开</span>
+            <a href="https://grrrs.sdkdns1.com" target="_blank" rel="noreferrer">高速网络工具下载入口</a>
+            <span>完成安装与连接，再继续执行下方配置指令。</span>
+          </div>
+
+          <div class="form-grid">
+            <label>
+              安装脚本地址
+              <input id="scriptUrl" autocomplete="off">
+              <span class="field-hint">默认使用当前服务地址。</span>
+            </label>
+
+            <label>
+              安装方式
+              <select id="method">
+                <option value="Official">官方安装器</option>
+                <option value="Npm">npm 全局安装</option>
+              </select>
+            </label>
+          </div>
+
+          <label>
+            代理地址，可留空
+            <input id="proxyUrl" placeholder="例如：http://127.0.0.1:7890" autocomplete="off">
+          </label>
+
+          <label>
+            OpenAI API key，可留空
+            <span class="secret-field">
+              <input id="apiKey" type="password" placeholder="sk-..." autocomplete="off">
+              <button id="toggleApiKey" class="icon-button secret-toggle" type="button" aria-label="显示 API key" title="显示 API key">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+            </span>
+            <span class="field-hint">没有？<a id="apiKeyBuyLink" href="apikey.html">购买 API key！</a></span>
+          </label>
+
+          <label class="check-row">
+            <input id="skipNetworkCheck" type="checkbox">
+            跳过网络预检
+          </label>
+        </section>
+
+        <section class="panel" aria-label="配置指令">
+          <div class="panel-head">
+            <div>
+              <h3>配置指令</h3>
+              <p>20 元服务提供配置指令；30 元服务会额外显示网络加速工具入口。</p>
+            </div>
+          </div>
+
+          <label>
+            当前配置
+            <textarea id="command" readonly></textarea>
+          </label>
+
+          <div class="actions">
+            <button id="copy" class="btn secondary" type="button">复制配置摘要</button>
+            <button id="copyFull" class="btn" type="button">复制 PowerShell 指令</button>
+          </div>
+        </section>
+      </div>
+
+      <div class="next-strip">
+        <div>
+          <h3>还没有付款？</h3>
+          <p>Codex 部署配置为付费服务，请先到专门支付页选择 20 元或 30 元方案。</p>
+        </div>
+        <a class="btn blue" href="pay.html">前往支付页</a>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const views = document.querySelectorAll("[data-view]");
+    const goButtons = document.querySelectorAll("[data-go]");
+    const scriptUrl = document.querySelector("#scriptUrl");
+    const method = document.querySelector("#method");
+    const proxyUrl = document.querySelector("#proxyUrl");
+    const apiKey = document.querySelector("#apiKey");
+    const toggleApiKey = document.querySelector("#toggleApiKey");
+    const apiKeyBuyLink = document.querySelector("#apiKeyBuyLink");
+    const skipNetworkCheck = document.querySelector("#skipNetworkCheck");
+    const command = document.querySelector("#command");
+    const copy = document.querySelector("#copy");
+    const copyFull = document.querySelector("#copyFull");
+    const orderStrip = document.querySelector("#orderStrip");
+    const serviceTitle = document.querySelector("#serviceTitle");
+    const serviceHint = document.querySelector("#serviceHint");
+    const networkNotice = document.querySelector("#networkNotice");
+    const userEmail = document.querySelector("#userEmail");
+    const logout = document.querySelector("#logout");
+
+    const params = new URLSearchParams(window.location.search);
+    let paidPlan = params.get("plan") || "";
+    let paidOrderId = params.get("order") || "";
+    let paidLookupCode = params.get("code") || "";
+    let orderVerified = false;
+    const savedApiKeyKey = "middleman.lastApiKey";
+
+    function setView(name) {
+      document.body.dataset.currentView = name;
+      views.forEach((view) => {
+        view.classList.toggle("active", view.dataset.view === name);
+      });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function psQuote(value) {
+      return "'" + value.replaceAll("'", "''") + "'";
+    }
+
+    function utf16LeBase64(value) {
+      let binary = "";
+      for (let i = 0; i < value.length; i += 1) {
+        const code = value.charCodeAt(i);
+        binary += String.fromCharCode(code & 0xff, code >> 8);
+      }
+      return btoa(binary);
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#039;"
+      })[char]);
+    }
+
+    function deployReturnUrl() {
+      if (paidOrderId && paidLookupCode) {
+        const values = new URLSearchParams({
+          view: "deploy",
+          order: paidOrderId,
+          code: paidLookupCode,
+          plan: paidPlan || ""
+        });
+        return "index.html?" + values.toString();
+      }
+      return "index.html?view=deploy";
+    }
+
+    function updateApiKeyBuyLink() {
+      const values = new URLSearchParams({ return: deployReturnUrl() });
+      apiKeyBuyLink.href = "apikey.html?" + values.toString();
+    }
+
+    function serviceCopy() {
+      if (paidPlan === "codex-network") {
+        return {
+          title: "已选择 30 元方案：配置指令 + 网络加速指引",
+          hint: "请先完成高速网络工具安装与连接，再执行 Codex 部署配置。"
+        };
+      }
+      if (paidPlan === "codex-config") {
+        return {
+          title: "已选择 20 元方案：Codex 部署配置指令",
+          hint: "此方案默认你已经准备好可用的网络加速环境。"
+        };
+      }
+      return {
+        title: "请先完成支付",
+        hint: "支付完成后，系统会展示对应的配置指令内容。"
+      };
+    }
+
+    function buildCommand() {
+      const url = scriptUrl.value.trim();
+      const key = apiKey.value.trim();
+      const proxy = proxyUrl.value.trim();
+      const service = serviceCopy();
+      if (!orderVerified) {
+        command.dataset.fullCommand = "";
+        command.value = [
+          paidOrderId ? "订单尚未通过后台确认" : "请先完成支付",
+          paidOrderId ? "订单号：" + paidOrderId : "订单号：未绑定",
+          "请先在支付页创建订单并完成付款。",
+          "只有后台确认收款后，才会显示部署配置指令。"
+        ].join("\n");
+        return;
+      }
+      const summary = [
+        "Codex 部署服务配置",
+        "服务内容：" + service.title,
+        paidOrderId ? "订单号：" + paidOrderId : "订单号：未绑定",
+        paidLookupCode ? "查询码：" + paidLookupCode : "查询码：未绑定",
+        "安装脚本地址：" + (url || "未填写"),
+        "安装方式：" + (method.value === "Npm" ? "npm 全局安装" : "官方安装器"),
+        "代理地址：" + (proxy || "未填写"),
+        "API key：" + (key ? "已填写" : "未填写"),
+        "网络预检：" + (skipNetworkCheck.checked ? "跳过" : "启用"),
+        paidPlan === "codex-network" ? "附加指引：请先使用页面中的高速网络工具下载入口完成准备。" : "附加指引：已有网络加速环境，直接按配置执行。",
+      ].join("\n");
+      const flags = [
+        "-Method " + psQuote(method.value),
+        key ? "-ApiKey " + psQuote(key) : "-SkipApiKey",
+        proxy ? "-ProxyUrl " + psQuote(proxy) : "",
+        skipNetworkCheck.checked ? "-SkipNetworkCheck" : ""
+      ].filter(Boolean).join(" ");
+      const script = [
+        "$ErrorActionPreference = 'Stop'",
+        "$script = Invoke-RestMethod -Uri " + psQuote(url),
+        "$tmp = Join-Path $env:TEMP 'install-codex.ps1'",
+        "Set-Content -LiteralPath $tmp -Value $script -Encoding UTF8",
+        "& $tmp " + flags
+      ].join("; ");
+
+      command.dataset.fullCommand = "powershell -ExecutionPolicy Bypass -EncodedCommand " + utf16LeBase64(script);
+      command.value = summary;
+    }
+
+    async function copyText(value, button, doneText) {
+      if (!value) return;
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(value);
+        } else {
+          throw new Error("Clipboard API unavailable.");
+        }
+      } catch {
+        const helper = document.createElement("textarea");
+        helper.value = value;
+        helper.setAttribute("readonly", "");
+        helper.style.position = "fixed";
+        helper.style.left = "-9999px";
+        helper.style.top = "0";
+        document.body.appendChild(helper);
+        helper.select();
+        const copied = document.execCommand("copy");
+        document.body.removeChild(helper);
+        if (!copied) {
+          command.focus();
+          command.select();
+          throw new Error("复制失败，请按 Ctrl+C 手动复制。");
+        }
+      }
+      const original = button.textContent;
+      button.textContent = doneText;
+      window.setTimeout(() => {
+        button.textContent = original;
+      }, 1200);
+    }
+
+    function lockDeploy(message) {
+      orderVerified = false;
+      serviceTitle.textContent = "订单未确认";
+      serviceHint.textContent = message;
+      networkNotice.hidden = true;
+      copy.disabled = true;
+      copyFull.disabled = true;
+      orderStrip.classList.add("active");
+      orderStrip.innerHTML = `
+        <strong>暂不能进入部署配置</strong>
+        <span>${escapeHtml(message)}</span>
+        <a class="btn secondary" href="pay.html#lookup">返回支付页查询订单</a>
+      `;
+      buildCommand();
+      setView("deploy");
+    }
+
+    async function applyPaidState() {
+      const service = serviceCopy();
+      serviceTitle.textContent = service.title;
+      serviceHint.textContent = service.hint;
+      networkNotice.hidden = paidPlan !== "codex-network";
+
+      if (paidOrderId) {
+        if (!paidLookupCode) {
+          lockDeploy("缺少查询码，无法校验订单。请回到支付页查询订单。");
+          return;
+        }
+
+        try {
+          const response = await fetch(`/api/orders/${encodeURIComponent(paidOrderId)}`, {
+            headers: { "X-Order-Code": paidLookupCode }
+          });
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || "订单校验失败。");
+          }
+
+          if (data.order.status !== "fulfilled") {
+            lockDeploy("订单还没有后台确认收款。请付款后等待管理员确认，再从支付页查询订单进入部署配置。");
+            return;
+          }
+
+          orderVerified = true;
+          paidPlan = data.order.planId || paidPlan;
+          updateApiKeyBuyLink();
+          const verifiedService = serviceCopy();
+          serviceTitle.textContent = verifiedService.title;
+          serviceHint.textContent = verifiedService.hint;
+          networkNotice.hidden = paidPlan !== "codex-network";
+          copy.disabled = false;
+          copyFull.disabled = false;
+          orderStrip.classList.add("active");
+          orderStrip.innerHTML = `
+            <strong>订单已确认，可以查看部署配置</strong>
+            <span>订单号：<code>${escapeHtml(paidOrderId)}</code>，查询码：<code>${escapeHtml(paidLookupCode)}</code>。</span>
+          `;
+          buildCommand();
+          setView("deploy");
+        } catch (error) {
+          lockDeploy(error.message || "订单校验失败，请回到支付页重新查询订单。");
+        }
+      } else {
+        copy.disabled = true;
+        copyFull.disabled = true;
+        orderStrip.classList.add("active");
+        orderStrip.innerHTML = `
+          <strong>请先完成支付</strong>
+          <span>部署配置是付费内容，请先到支付页创建订单并等待后台确认。</span>
+          <a class="btn secondary" href="pay.html">前往支付页</a>
+        `;
+        if (params.get("view") === "deploy") {
+          setView("deploy");
+        }
+      }
+    }
+
+    goButtons.forEach((button) => {
+      button.addEventListener("click", () => setView(button.dataset.go));
+    });
+
+    async function loadCurrentUser() {
+      const response = await fetch("/api/auth/me");
+      const data = await response.json();
+      if (!data.user) {
+        window.location.href = "login.html?next=" + encodeURIComponent(window.location.pathname + window.location.search);
+        return;
+      }
+      userEmail.textContent = data.user.email;
+    }
+
+    logout.addEventListener("click", async () => {
+      await fetch("/api/auth/logout", { method: "POST" });
+      window.location.href = "login.html";
+    });
+
+    [scriptUrl, method, proxyUrl, apiKey].forEach((el) => el.addEventListener("input", buildCommand));
+    skipNetworkCheck.addEventListener("change", buildCommand);
+    toggleApiKey.addEventListener("click", () => {
+      const visible = apiKey.type === "text";
+      apiKey.type = visible ? "password" : "text";
+      toggleApiKey.setAttribute("aria-label", visible ? "显示 API key" : "隐藏 API key");
+      toggleApiKey.setAttribute("title", visible ? "显示 API key" : "隐藏 API key");
+    });
+    copy.addEventListener("click", () => copyText(command.value, copy, "已复制").catch((error) => {
+      window.alert(error.message || "复制失败，请手动复制。");
+    }));
+    copyFull.addEventListener("click", () => copyText(command.dataset.fullCommand || "", copyFull, "已复制").catch((error) => {
+      window.alert(error.message || "复制失败，请手动复制。");
+    }));
+
+    const origin = window.location.origin && window.location.origin !== "null"
+      ? window.location.origin
+      : "http://localhost:8000";
+    scriptUrl.value = `${origin}/install-codex.ps1`;
+    proxyUrl.value = "https://api.schyler.top";
+    const savedApiKey = window.localStorage.getItem(savedApiKeyKey) || "";
+    if (savedApiKey && !apiKey.value.trim()) {
+      apiKey.value = savedApiKey;
+    }
+    updateApiKeyBuyLink();
+    loadCurrentUser();
+    applyPaidState();
+    buildCommand();
+  </script>
+</body>
+</html>

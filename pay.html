@@ -1,0 +1,946 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Codex 自动化部署</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7fb;
+      --surface: #ffffff;
+      --surface-soft: #f8fafc;
+      --ink: #15202b;
+      --muted: #667085;
+      --line: #d9e2ea;
+      --accent: #0f766e;
+      --accent-dark: #0b5f59;
+      --coral: #f05267;
+      --blue: #1d4ed8;
+      --danger: #b42318;
+      --ok: #15803d;
+      --shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      max-width: 700px;
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.12;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      font-size: clamp(24px, 3.2vw, 34px);
+      line-height: 1.16;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      font-size: 20px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    .shell {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 22px 0 42px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--ink);
+      color: #fff;
+      font-weight: 850;
+    }
+
+    .brand-copy {
+      display: grid;
+      line-height: 1.15;
+    }
+
+    .brand-copy strong {
+      font-size: 15px;
+    }
+
+    .brand-copy span,
+    .lead,
+    .field-hint,
+    .details dt,
+    .plan-card p,
+    .support-strip p {
+      color: var(--muted);
+    }
+
+    .nav,
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      display: inline-flex;
+      min-height: 42px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-radius: 6px;
+      padding: 10px 14px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 760;
+      text-decoration: none;
+      transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+    }
+
+    .btn:hover {
+      background: var(--accent-dark);
+      transform: translateY(-1px);
+    }
+
+    .btn.secondary {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .btn.secondary:hover {
+      border-color: #aab8c5;
+      background: #f9fbfd;
+    }
+
+    .btn.blue {
+      background: var(--blue);
+    }
+
+    .btn.blue:hover {
+      background: #1e40af;
+    }
+
+    .btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.65;
+      transform: none;
+    }
+
+    .view {
+      display: none;
+      gap: 18px;
+    }
+
+    .view.active {
+      display: grid;
+    }
+
+    .hero {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .eyebrow {
+      width: fit-content;
+      border: 1px solid #bdd8d4;
+      border-radius: 999px;
+      padding: 5px 10px;
+      background: #eef8f6;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .plan-card,
+    .payment-card,
+    .summary-card,
+    .lookup-card,
+    .support-strip {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .plan-card {
+      display: grid;
+      gap: 18px;
+      padding: clamp(22px, 4vw, 32px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .plan-card.recommended {
+      border-color: #f7b4bf;
+    }
+
+    .plan-card.recommended::before {
+      content: "推荐";
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      border-radius: 999px;
+      padding: 5px 10px;
+      background: #fff1f3;
+      color: var(--coral);
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .plan-price {
+      display: flex;
+      align-items: baseline;
+      gap: 5px;
+      color: var(--coral);
+      font-weight: 900;
+    }
+
+    .plan-price strong {
+      font-size: clamp(42px, 6vw, 58px);
+      line-height: 1;
+    }
+
+    .plan-list {
+      display: grid;
+      gap: 10px;
+      padding: 0;
+      margin: 0;
+      list-style: none;
+    }
+
+    .plan-list li {
+      display: flex;
+      gap: 9px;
+      align-items: flex-start;
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .plan-list li::before {
+      content: "✓";
+      color: var(--ok);
+      font-weight: 900;
+    }
+
+    .plan-card .btn {
+      min-height: 52px;
+      margin-top: 4px;
+      background: linear-gradient(90deg, #0f766e, #f05267);
+      box-shadow: 0 12px 24px rgba(240, 82, 103, 0.18);
+    }
+
+    .support-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 18px;
+      box-shadow: none;
+    }
+
+    .payment-layout {
+      display: grid;
+      grid-template-columns: minmax(330px, 0.9fr) minmax(340px, 1.1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .payment-card,
+    .summary-card,
+    .lookup-card {
+      display: grid;
+      gap: 16px;
+      padding: 22px;
+      align-content: start;
+    }
+
+    .payment-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .amount {
+      color: var(--coral);
+      font-size: clamp(40px, 6vw, 56px);
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .qr-box {
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      background: var(--surface-soft);
+    }
+
+    .pay-qr {
+      display: block;
+      width: min(260px, 100%);
+      aspect-ratio: 1;
+      object-fit: contain;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 8px;
+    }
+
+    .pay-methods {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pay-method {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px 12px;
+      background: #fff;
+      color: var(--ink);
+      font-weight: 760;
+    }
+
+    .pay-method.active {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .pay-method:disabled {
+      color: var(--muted);
+      background: #f4f7f9;
+      cursor: not-allowed;
+    }
+
+    .status-pill {
+      width: fit-content;
+      border-radius: 999px;
+      padding: 4px 9px;
+      background: #fff7ed;
+      color: #9a3412;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .status-pill.done {
+      background: #ecfdf3;
+      color: var(--ok);
+    }
+
+    .details {
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr);
+      gap: 9px 12px;
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .details dd {
+      margin: 0;
+      font-weight: 680;
+    }
+
+    .message {
+      border-radius: 8px;
+      padding: 12px;
+      background: var(--surface-soft);
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    .message.error {
+      border: 1px solid #fecaca;
+      background: #fef2f2;
+      color: var(--danger);
+      font-weight: 680;
+    }
+
+    label {
+      display: grid;
+      gap: 8px;
+      font-weight: 680;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 11px 12px;
+      background: #fff;
+      color: var(--ink);
+      outline: none;
+      transition: border-color 140ms ease, box-shadow 140ms ease;
+    }
+
+    input:focus {
+      border-color: #78bdb5;
+      box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.12);
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+    }
+
+    @media (max-width: 880px) {
+      .pricing-grid,
+      .payment-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .shell {
+        width: min(100% - 20px, 1120px);
+        padding-top: 14px;
+      }
+
+      .topbar,
+      .support-strip,
+      .payment-head {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .nav,
+      .actions {
+        justify-content: stretch;
+      }
+
+      .btn {
+        width: 100%;
+      }
+
+      .details {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">M</span>
+        <span class="brand-copy">
+          <strong>Middleman 服务工作台</strong>
+          <span>Codex 自动化部署</span>
+        </span>
+      </a>
+      <nav class="nav" aria-label="主导航">
+        <span id="userEmail" class="field-hint"></span>
+        <a class="btn secondary" href="index.html">服务首页</a>
+        <button class="btn secondary" type="button" data-open-lookup>查询订单</button>
+        <button id="logout" class="btn secondary" type="button">退出登录</button>
+      </nav>
+    </header>
+
+    <section class="view active" data-view="plans" aria-label="选择服务">
+      <div class="hero">
+        <div class="eyebrow">Codex 自动化部署</div>
+        <h1>选择适合你的部署服务</h1>
+        <p class="lead">根据你是否已经准备好网络环境，选择对应服务。点击立即购买后，会进入支付宝付款界面。</p>
+      </div>
+
+      <div class="pricing-grid">
+        <article class="plan-card">
+          <div>
+            <h2>已有网络环境</h2>
+            <p>适合已经具备可用网络环境，只需要完成 Codex 部署配置的用户。</p>
+          </div>
+          <div class="plan-price"><span>￥</span><strong>20</strong></div>
+          <ul class="plan-list">
+            <li>生成部署配置</li>
+            <li>整理关键命令步骤</li>
+            <li>减少手动配置出错</li>
+          </ul>
+          <button class="btn" type="button" data-plan="codex-config">立即购买</button>
+        </article>
+
+        <article class="plan-card recommended">
+          <div>
+            <h2>需要准备网络环境</h2>
+            <p>适合还没有准备好网络环境，希望先完成网络环境准备再部署的用户。</p>
+          </div>
+          <div class="plan-price"><span>￥</span><strong>30</strong></div>
+          <ul class="plan-list">
+            <li>包含网络环境准备指引</li>
+            <li>生成部署配置</li>
+            <li>按步骤完成安装验证</li>
+          </ul>
+          <button class="btn" type="button" data-plan="codex-network">立即购买</button>
+        </article>
+      </div>
+
+      <div class="support-strip">
+        <div>
+          <h3>已经创建过订单？</h3>
+          <p>使用订单号和查询码查看进度，完成后会自动进入部署配置。</p>
+        </div>
+        <button class="btn secondary" type="button" data-open-lookup>查询订单</button>
+      </div>
+    </section>
+
+    <section class="view" data-view="payment" aria-label="支付宝付款">
+      <div class="actions">
+        <button id="backToPlans" class="btn secondary" type="button">返回选择</button>
+      </div>
+      <div class="payment-layout">
+        <section id="paymentPanel" class="payment-card" aria-live="polite"></section>
+        <aside id="orderPanel" class="summary-card" aria-live="polite"></aside>
+      </div>
+    </section>
+
+    <section class="view" data-view="lookup" aria-label="查询订单">
+      <div class="lookup-card">
+        <div>
+          <h2>查询订单</h2>
+          <p class="lead">输入订单号和查询码，查看当前进度。</p>
+        </div>
+        <label>
+          订单号
+          <input id="queryOrderId" type="text" placeholder="CDX-..." autocomplete="off">
+        </label>
+        <label>
+          查询码
+          <input id="queryCode" type="text" placeholder="创建订单后显示" autocomplete="off">
+        </label>
+        <div class="actions">
+          <button id="queryOrder" class="btn" type="button">查询订单</button>
+          <button class="btn secondary" type="button" data-go-plans>返回选择</button>
+        </div>
+      </div>
+      <aside id="queryResult" class="summary-card" aria-live="polite"></aside>
+    </section>
+  </main>
+
+  <script>
+    const views = document.querySelectorAll("[data-view]");
+    const planButtons = document.querySelectorAll("[data-plan]");
+    const lookupButtons = document.querySelectorAll("[data-open-lookup]");
+    const backToPlans = document.querySelector("#backToPlans");
+    const paymentPanel = document.querySelector("#paymentPanel");
+    const orderPanel = document.querySelector("#orderPanel");
+    const queryOrderId = document.querySelector("#queryOrderId");
+    const queryCode = document.querySelector("#queryCode");
+    const queryOrder = document.querySelector("#queryOrder");
+    const queryResult = document.querySelector("#queryResult");
+    const goPlanButtons = document.querySelectorAll("[data-go-plans]");
+    const userEmail = document.querySelector("#userEmail");
+    const logout = document.querySelector("#logout");
+
+    const activeOrderKey = "middleman.activeCodexOrder";
+    let currentOrder = null;
+    let pollTimer = 0;
+
+    const planCopy = {
+      "codex-config": {
+        title: "Codex 自动化部署",
+        price: 20,
+        description: "已有可用网络环境，直接完成部署配置。"
+      },
+      "codex-network": {
+        title: "自动化部署 + 网络环境准备",
+        price: 30,
+        description: "先完成网络环境准备，再进入部署配置。"
+      }
+    };
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#039;"
+      })[char]);
+    }
+
+    function setView(name) {
+      if (name === "plans") {
+        planButtons.forEach((button) => {
+          button.disabled = false;
+          button.textContent = "立即购买";
+        });
+      }
+      views.forEach((view) => {
+        view.classList.toggle("active", view.dataset.view === name);
+      });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function displayPlan(order) {
+      return planCopy[order.planId] || {
+        title: order.planTitle || "Codex 自动化部署",
+        price: order.price || "",
+        description: ""
+      };
+    }
+
+    function statusText(status) {
+      if (status === "fulfilled") return "可进入部署";
+      if (status === "pending_payment") return "处理中";
+      return status || "未知状态";
+    }
+
+    function deployUrl(order) {
+      const params = new URLSearchParams({
+        view: "deploy",
+        order: order.id,
+        code: order.lookupCode || "",
+        plan: order.planId || ""
+      });
+      return "index.html?" + params.toString();
+    }
+
+    function saveActiveOrder(order) {
+      window.localStorage.setItem(activeOrderKey, JSON.stringify({
+        id: order.id,
+        lookupCode: order.lookupCode || "",
+        planId: order.planId || ""
+      }));
+    }
+
+    function clearActiveOrder() {
+      window.localStorage.removeItem(activeOrderKey);
+    }
+
+    function readActiveOrder() {
+      try {
+        return JSON.parse(window.localStorage.getItem(activeOrderKey) || "null");
+      } catch {
+        return null;
+      }
+    }
+
+    function renderPayment(order) {
+      const plan = displayPlan(order);
+      const isDone = order.status === "fulfilled";
+      const qr = order.paymentQr
+        ? `<img class="pay-qr" src="${escapeHtml(order.paymentQr)}" alt="支付宝收款二维码">`
+        : `<div class="message error">暂未配置支付宝二维码。</div>`;
+
+      paymentPanel.innerHTML = `
+        <div class="payment-head">
+          <div>
+            <h2>${isDone ? "可以开始部署" : "支付宝扫码付款"}</h2>
+            <p class="field-hint">${isDone ? "部署配置已经准备好。" : "付款备注请填写订单号，便于快速核对。"}</p>
+          </div>
+          <span class="status-pill ${isDone ? "done" : ""}">${escapeHtml(statusText(order.status))}</span>
+        </div>
+        <div class="amount">￥${escapeHtml(order.price || plan.price)}</div>
+        <div class="pay-methods" aria-label="支付方式">
+          <button class="pay-method active" type="button">支付宝</button>
+          <button class="pay-method" type="button" disabled>微信支付（暂未开启）</button>
+        </div>
+        <div class="qr-box">${qr}</div>
+        <div class="message">付款完成后请保持此页面打开，状态更新后会自动进入部署配置。</div>
+        <div class="actions">
+          <button class="btn secondary" type="button" data-copy-value="${escapeHtml(order.id)}">复制订单号</button>
+          <button id="refreshOrder" class="btn secondary" type="button">刷新状态</button>
+          ${isDone ? `<a class="btn blue" href="${escapeHtml(deployUrl(order))}">进入部署配置</a>` : ""}
+        </div>
+      `;
+
+      orderPanel.innerHTML = `
+        <h3>订单信息</h3>
+        <dl class="details">
+          <dt>服务</dt><dd>${escapeHtml(plan.title)}</dd>
+          <dt>金额</dt><dd>${escapeHtml(order.price || plan.price)} 元</dd>
+          <dt>订单号</dt><dd><code>${escapeHtml(order.id)}</code></dd>
+          <dt>查询码</dt><dd><code>${escapeHtml(order.lookupCode || "")}</code></dd>
+          <dt>付款备注</dt><dd><code>${escapeHtml(order.id)}</code></dd>
+        </dl>
+        <p class="field-hint">${escapeHtml(plan.description)}</p>
+      `;
+
+      const refreshOrder = document.querySelector("#refreshOrder");
+      if (refreshOrder) {
+        refreshOrder.addEventListener("click", () => pollOrder(order).catch(() => {}));
+      }
+    }
+
+    function renderLookupResult(order) {
+      const plan = displayPlan(order);
+      const isDone = order.status === "fulfilled";
+      queryResult.innerHTML = `
+        <div class="payment-head">
+          <h3>${isDone ? "可以开始部署" : "订单处理中"}</h3>
+          <span class="status-pill ${isDone ? "done" : ""}">${escapeHtml(statusText(order.status))}</span>
+        </div>
+        <dl class="details">
+          <dt>服务</dt><dd>${escapeHtml(plan.title)}</dd>
+          <dt>金额</dt><dd>${escapeHtml(order.price || plan.price)} 元</dd>
+          <dt>订单号</dt><dd><code>${escapeHtml(order.id)}</code></dd>
+          <dt>查询码</dt><dd><code>${escapeHtml(order.lookupCode || "")}</code></dd>
+        </dl>
+        <div class="actions">
+          ${isDone ? `<a class="btn blue" href="${escapeHtml(deployUrl(order))}">进入部署配置</a>` : `<button class="btn secondary" type="button" data-continue-pay>继续查看付款码</button>`}
+        </div>
+      `;
+
+      const continuePay = queryResult.querySelector("[data-continue-pay]");
+      if (continuePay) {
+        continuePay.addEventListener("click", () => {
+          currentOrder = order;
+          renderPayment(order);
+          setView("payment");
+        });
+      }
+    }
+
+    async function createOrder(planId, button) {
+      const originalText = button.textContent;
+      button.disabled = true;
+      button.textContent = "生成中...";
+      try {
+        const response = await fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            planId,
+            contact: "",
+            paymentMethod: "alipay"
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "订单创建失败。");
+        }
+
+        currentOrder = data.order;
+        saveActiveOrder(currentOrder);
+        queryOrderId.value = currentOrder.id;
+        queryCode.value = currentOrder.lookupCode || "";
+        renderPayment(currentOrder);
+        setView("payment");
+        startOrderPolling(currentOrder);
+      } catch (error) {
+        button.textContent = originalText;
+        button.disabled = false;
+        window.alert(error.message || "订单创建失败。");
+      }
+    }
+
+    async function fetchOrder(orderId, code) {
+      const response = await fetch(`/api/orders/${encodeURIComponent(orderId)}`, {
+        headers: { "X-Order-Code": code }
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "查询失败。");
+      }
+      return data.order;
+    }
+
+    async function lookupOrder() {
+      const orderId = queryOrderId.value.trim();
+      const code = queryCode.value.trim();
+      if (!orderId || !code) {
+        queryResult.innerHTML = `<div class="message error">请填写订单号和查询码。</div>`;
+        return;
+      }
+
+      const originalText = queryOrder.textContent;
+      queryOrder.disabled = true;
+      queryOrder.textContent = "查询中...";
+      try {
+        const order = await fetchOrder(orderId, code);
+        renderLookupResult(order);
+        if (order.status === "fulfilled") {
+          clearActiveOrder();
+          window.location.href = deployUrl(order);
+        } else {
+          currentOrder = order;
+          saveActiveOrder(order);
+          startOrderPolling(order);
+        }
+      } catch (error) {
+        queryResult.innerHTML = `<div class="message error">${escapeHtml(error.message || "查询失败。")}</div>`;
+      } finally {
+        queryOrder.disabled = false;
+        queryOrder.textContent = originalText;
+      }
+    }
+
+    async function pollOrder(order) {
+      const latest = await fetchOrder(order.id, order.lookupCode || "");
+      currentOrder = latest;
+      renderPayment(latest);
+      if (latest.status === "fulfilled") {
+        stopOrderPolling();
+        clearActiveOrder();
+        window.location.href = deployUrl(latest);
+      }
+    }
+
+    function startOrderPolling(order) {
+      stopOrderPolling();
+      pollTimer = window.setInterval(() => {
+        pollOrder(order).catch(() => {});
+      }, 3000);
+    }
+
+    function stopOrderPolling() {
+      if (pollTimer) {
+        window.clearInterval(pollTimer);
+        pollTimer = 0;
+      }
+    }
+
+    async function copyText(value, button, doneText) {
+      if (!value) return;
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(value);
+        } else {
+          throw new Error("Clipboard API unavailable.");
+        }
+      } catch {
+        const helper = document.createElement("textarea");
+        helper.value = value;
+        helper.setAttribute("readonly", "");
+        helper.style.position = "fixed";
+        helper.style.left = "-9999px";
+        helper.style.top = "0";
+        document.body.appendChild(helper);
+        helper.select();
+        const copied = document.execCommand("copy");
+        document.body.removeChild(helper);
+        if (!copied) {
+          throw new Error("复制失败，请手动复制。");
+        }
+      }
+      const original = button.textContent;
+      button.textContent = doneText;
+      window.setTimeout(() => {
+        button.textContent = original;
+      }, 1200);
+    }
+
+    planButtons.forEach((button) => {
+      button.addEventListener("click", () => createOrder(button.dataset.plan, button));
+    });
+
+    lookupButtons.forEach((button) => {
+      button.addEventListener("click", () => setView("lookup"));
+    });
+
+    goPlanButtons.forEach((button) => {
+      button.addEventListener("click", () => setView("plans"));
+    });
+
+    backToPlans.addEventListener("click", () => setView("plans"));
+    queryOrder.addEventListener("click", lookupOrder);
+
+    async function loadCurrentUser() {
+      const response = await fetch("/api/auth/me");
+      const data = await response.json();
+      if (!data.user) {
+        window.location.href = "login.html?next=" + encodeURIComponent(window.location.pathname + window.location.search);
+        return;
+      }
+      userEmail.textContent = data.user.email;
+    }
+
+    logout.addEventListener("click", async () => {
+      await fetch("/api/auth/logout", { method: "POST" });
+      window.location.href = "login.html";
+    });
+
+    document.addEventListener("click", async (event) => {
+      const button = event.target.closest("[data-copy-value]");
+      if (!button) return;
+      await copyText(button.dataset.copyValue, button, "已复制").catch((error) => {
+        window.alert(error.message || "复制失败，请手动复制。");
+      });
+    });
+
+    if (window.location.hash === "#lookup") {
+      setView("lookup");
+    }
+    loadCurrentUser();
+
+    const restoredOrder = readActiveOrder();
+    if (restoredOrder?.id && restoredOrder?.lookupCode && window.location.hash !== "#lookup") {
+      paymentPanel.innerHTML = `<div class="message">正在恢复订单 <code>${escapeHtml(restoredOrder.id)}</code>...</div>`;
+      orderPanel.innerHTML = "";
+      setView("payment");
+      fetchOrder(restoredOrder.id, restoredOrder.lookupCode)
+        .then((order) => {
+          currentOrder = order;
+          renderPayment(order);
+          startOrderPolling(order);
+        })
+        .catch(() => {
+          clearActiveOrder();
+          setView("plans");
+        });
+    }
+  </script>
+</body>
+</html>
