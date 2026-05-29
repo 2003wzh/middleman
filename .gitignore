@@ -5,7 +5,9 @@ __pycache__/
 .env.*
 !.env.example
 
-secrets/
+secrets/*
+!secrets/README.md
+!secrets/*.example.json
 
 *.zip
 *.log
